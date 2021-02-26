@@ -158,7 +158,7 @@ Output:
 
 ### Arrays
 
-#### Array of object to array of primitives (with filter)
+#### Array of objects to array of primitives (with filter)
 
 Data
 
