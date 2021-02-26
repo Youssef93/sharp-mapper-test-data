@@ -158,9 +158,208 @@ Output:
 
 ### Arrays
 
-Example 1:
+#### Array of object to array of primitives (with filter)
 
-Data:
+Data
+
+```json
+{
+  "phones": [
+    {
+      "number": "123",
+      "id": "1"
+    },
+    {
+      "number": "12",
+      "id": "2"
+    }
+  ]
+}
+```
+
+Schema:
+
+```json
+{
+  "phones": [
+    {
+      "arrays": "@phones",
+      "pick": "@this.number",
+      "filter": "$if @this.number $greater than 100 $return true"
+    }
+  ]
+}
+```
+
+Output:
+
+```json
+{
+  "phones": ["123"]
+}
+```
+
+If the filter is replaced with find, the result will be 
+
+```json
+{
+  "phones": "123"
+}
+```
+
+If the filter (or find) are removed, the result will be
+
+```
+{
+  "phones": ["123", "12"]
+}
+```
+
+#### Array of primitives to array of objects (with filter)
+
+Data
+
+```json
+{
+  "client": {
+    "name": "joe"
+  },
+
+  "ids": [1,2,3,4,5]
+}
+
+```
+
+Schema
+
+```json
+{
+  "clientName": "@client.name",
+  "idsObj": [
+    {
+      "arrays": "@ids",
+      "filter": "$if @this $greater than 3 $return true",
+      "map": {
+        "id": "@this"
+      }
+    }
+  ]
+}
+```
+
+Output
+
+```json
+{
+  "clientName": "joe",
+  "idsObj": [
+    {
+      "id": 4
+    },
+    {
+      "id": 5
+    }
+  ]
+}
+```
+
+If the filter is replaced with find, result will be
+
+```json
+{
+  "clientName": "joe",
+  "idsObj":
+   {
+     "id": 4
+   }
+}
+```
+
+If the filter (or find) are removed, the result will be
+
+```json
+{
+  "clientName": "joe",
+  "idsObj": [
+    {
+      "id": 1
+    },
+    {
+      "id": 2
+    },
+    {
+      "id": 3
+    },
+    {
+      "id": 4
+    },
+    {
+      "id": 5
+    }
+  ]
+}
+```
+
+#### Array of primitive to array of primitive (with filter)
+
+Data
+
+```json
+{
+  "client": {
+    "name": "joe"
+  },
+
+  "ids": [1,2,3,4,5]
+}
+```
+
+Schema
+
+```json
+{
+  "idsObj": [
+    {
+      "arrays": "@ids",
+      "filter": "$if @this $greater than 3 $return true",
+      "pick": "@this"
+    }
+  ]
+}
+```
+
+Output
+
+```json
+{
+  "idsObj": [
+    4, 5
+  ]
+}
+```
+
+If the filter is replaced with find, the result will be:
+
+```json
+{
+   "idsObj": 4
+}
+```
+
+If the filter and result are removed, the result will be:
+
+```json
+{
+  "idsObj": [
+    1,2,3,4,5
+  ]
+}
+
+```
+
+#### Array of objects to array of objects (with filter)
+
+Data
 
 ```json
 {
@@ -179,6 +378,14 @@ Data:
           "id": "d1id2",
           "name": "Test2"
         }
+      ],
+      "locations": [
+        {
+          "id": "1"
+        },
+        {
+          "id": "2"
+        }
       ]
     },
     {
@@ -193,6 +400,14 @@ Data:
         {
           "id": "d2id2",
           "name": "Test22"
+        }
+      ],
+      "locations": [
+        {
+          "id": "3"
+        },
+        {
+          "id": "4"
         }
       ]
     }
@@ -211,6 +426,14 @@ Data:
           "id": "dtest2",
           "name": "Test2"
         }
+      ],
+      "locations": [
+        {
+          "id": "5"
+        },
+        {
+          "id": "6"
+        }
       ]
     }
   ]
@@ -223,58 +446,107 @@ Schema:
 {
   "vehicles": [
     {
-      "$$repeat$$": "@cars $$and @motorcycles",
-      "model": "@this.model",
-      "year": "@this.year",
-      "newValue": 2,
-      "identification": {
-        "id": "@this.id",
-        "objectID": "@quoteId"
-      },
-      "drivers": [
-        {
-          "$$repeat$$": "@this.drivers",
+      "arrays": "@cars $$and @motorcycles",
+      "filter": "$if @this.year $greater than 2000 $return true",
+      "map": {
+        "details": {
           "id": "@this.id",
-          "parentID": "@this1.id"
+          "model": "@this.model",
+          "year": "@this.year",
+          "objectID": "@quoteId",
+          "newValue": 2,
+          "drivers": [
+            {
+              "arrays": "@this.drivers",
+              "map": {
+                "id": "@this.id",
+                "parentID": "@this1.id"
+              }
+            }
+          ],
+          "ids": [
+            {
+              "arrays": "@this.drivers $$and @this.locations",
+              "pick": "@this.id"
+            }
+          ]
         }
-      ]
+      }
     }
   ]
 }
 ```
 
-Output:
+Output
 
 ```json
 {
   "vehicles": [
     {
-      "model": "Jaguar",
-      "year": 2000,
-      "newValue": 2,
-      "identification": {
+      "details": {
+        "id": "2",
+        "model": "BMW",
+        "year": 2012,
         "objectID": "77",
-        "id": "1"
-      },
-      "drivers": [
-        {
-          "id": "d1id1",
-          "parentID": "1"
-        },
-        {
-          "id": "d1id2",
-          "parentID": "1"
-        }
-      ]
+        "newValue": 2,
+        "drivers": [
+          {
+            "id": "d2id1",
+            "parentID": "2"
+          },
+          {
+            "id": "d2id2",
+            "parentID": "2"
+          }
+        ],
+        "ids": [
+          "d2id1",
+          "d2id2",
+          "3",
+          "4"
+        ]
+      }
     },
     {
+      "details": {
+        "id": "13",
+        "model": "Harvey",
+        "year": 2003,
+        "objectID": "77",
+        "newValue": 2,
+        "drivers": [
+          {
+            "id": "dtest1",
+            "parentID": "13"
+          },
+          {
+            "id": "dtest2",
+            "parentID": "13"
+          }
+        ],
+        "ids": [
+          "dtest1",
+          "dtest2",
+          "5",
+          "6"
+        ]
+      }
+    }
+  ]
+}
+```
+
+If the filter is replaced with find, the result will be
+
+```json
+{
+  "vehicles": {
+    "details": {
+      "id": "2",
       "model": "BMW",
       "year": 2012,
+      "objectID": "77",
       "newValue": 2,
-      "identification": {
-        "objectID": "77",
-        "id": "2"
-      },
       "drivers": [
         {
           "id": "d2id1",
@@ -284,144 +556,21 @@ Output:
           "id": "d2id2",
           "parentID": "2"
         }
-      ]
-    },
-    {
-      "model": "Harvey",
-      "year": 2003,
-      "newValue": 2,
-      "identification": {
-        "objectID": "77",
-        "id": "13"
-      },
-      "drivers": [
-        {
-          "id": "dtest1",
-          "parentID": "13"
-        },
-        {
-          "id": "dtest2",
-          "parentID": "13"
-        }
+      ],
+      "ids": [
+        "d2id1",
+        "d2id2",
+        "3",
+        "4"
       ]
     }
-  ]
+  }
 }
 ```
 
-  
+#### Constructing an array from non-array data (pick returns a primitive value while map returns an object)
 
-Example 2:
-
-Data:
-
-```json
-{
-  "vehicles": [
-    {
-      "id": "1",
-      "name": "vehicle1",
-      "claims": [
-        {
-          "id": "a",
-          "name": "c11"
-        },
-        {
-          "id": "b",
-          "name": "c12"
-        }
-      ]
-    },
-    {
-      "id": "2",
-      "name": "vehicle2",
-      "claims": [
-        {
-          "id": "c",
-          "name": "c21"
-        },
-        {
-          "id": "d",
-          "name": "c22"
-        }
-      ]
-    }
-  ],
-  "motorcycles": [
-    {
-      "id": "3",
-      "name": "motorcycle1",
-      "claims": [
-        {
-          "id": "e",
-          "name": "c31"
-        }
-      ]
-    }
-  ]
-}
-```
-
-Schema:
-
-```json
-{
-  "allClaims": [
-    {
-      "$$repeat$$": "@vehicles.claims $$and @motorcycles.claims",
-      "id": "@this.id",
-      "claimName": "@this.name",
-      "parentID": "@this1.id",
-      "parentName": "@this1.name"
-    }
-  ]
-}
-```
-
-Output:
-
-```json
-{
-  "allClaims": [
-    {
-      "id": "a",
-      "claimName": "c11",
-      "parentID": "1",
-      "parentName": "vehicle1"
-    },
-    {
-      "id": "b",
-      "claimName": "c12",
-      "parentID": "1",
-      "parentName": "vehicle1"
-    },
-    {
-      "id": "c",
-      "claimName": "c21",
-      "parentID": "2",
-      "parentName": "vehicle2"
-    },
-    {
-      "id": "d",
-      "claimName": "c22",
-      "parentID": "2",
-      "parentName": "vehicle2"
-    },
-    {
-      "id": "e",
-      "claimName": "c31",
-      "parentID": "3",
-      "parentName": "motorcycle1"
-    }
-  ]
-}
-```
-
-------
-
-### Constructing an Array from Non-array Data
-
-Data:
+Data
 
 ```json
 {
@@ -436,11 +585,16 @@ Data:
   "vehicle_id_2": "b",
   "vehicle_id_3": "c",
   "vehicle_id_4": "d",
-  "vehicle_id_5": null
+  "vehicle_id_5": null,
+  "driver_id_1": "1",
+  "driver_id_2": "2",
+  "driver_id_3": "3",
+  "driver_id_4": "4",
+  "driver_id_5": null
 }
 ```
 
-Schema:
+Schema
 
 ```json
 {
@@ -451,14 +605,63 @@ Schema:
       "streetNumber": "@clientStreetAddress",
       "streetName": "@clientStreetName"
     },
+    "childName": "Mr. $concat @childFirstName $concat $with '' @childMiddleName $concat $with '-' @childLastName",
+    "anotherFormName": "Mr. $concat @childFirstName $concat @childLastName $concat @childMiddleName",
     "vehicles": [
       {
-        "$$repeat$$": [
-          "@vehicle_id_1",
-          "@vehicle_id_2",
-          "@vehicle_id_3",
-          "@vehicle_id_4",
-          "@vehicle_id_5"
+        "map": [
+          {
+            "id": "@vehicle_id_1",
+            "drivers": [
+              {
+                "pick": [
+                  "@driver_id_1"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "@vehicle_id_2",
+            "drivers": [
+              {
+                "pick": [
+                  "@driver_id_2"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "@vehicle_id_3",
+            "drivers": [
+              {
+                "pick": [
+                  "@driver_id_3"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "@vehicle_id_4",
+            "drivers": [
+              {
+                "pick": [
+                  "@driver_id_4"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "@vehicle_id_5",
+            "drivers": [
+              {
+                "map": [
+                  {
+                    "id": "@driver_id_5"
+                  }
+                ]
+              }
+            ]
+          }
         ]
       }
     ]
@@ -466,7 +669,7 @@ Schema:
 }
 ```
 
-Output:
+Output
 
 ```json
 {
@@ -477,226 +680,40 @@ Output:
       "streetNumber": "15 street 1",
       "streetName": "Rue de avenue"
     },
+
+    "childName": "Mr. JoeHeat-Marg",
+    "anotherFormName": "Mr. Joe Marg Heat",
     "vehicles": [
-      "a",
-      "b",
-      "c",
-      "d",
-      null
+      {
+        "id": "a",
+        "drivers": ["1"]
+      },
+      {
+        "id": "b",
+        "drivers": ["2"]
+      },
+      {
+        "id": "c",
+        "drivers": ["3"]
+      },
+      {
+        "id": "d",
+        "drivers": ["4"]
+      },
+      {
+        "id": null,
+        "drivers": [{"id": null}]
+      }
     ]
   }
 }
 ```
 
-------
 
-### Repeat value String
-
-Data:
-
-```json
-{
-  "cars": [
-    {
-      "name": "c1",
-      "modelYear": "1990"
-    },
-    {
-      "name": "c2",
-      "modelYear": "2000"
-    }
-  ]
-}
-```
-
-Schema:
-
-```json
-{
-  "cars": [
-    {
-      "$$repeat$$": "@cars",
-      "title": "@this.name",
-      "year": "@this.modelYear"
-    }
-  ]
-}
-```
-
-Output:
-
-```json
-{
-  "cars": [
-    {
-      "title": "c1",
-      "year": "1990"
-    },
-    {
-      "title": "c2",
-      "year": "2000"
-    }
-  ]
-}
-```
 
 ------
 
-### Repeat Value Array
 
-Example1
-
-Data:
-
-```json
-{
-  "vehicle_id_1": "a",
-  "vehicle_id_2": "b",
-  "vehicle_id_3": "c",
-  "vehicle_id_4": "d",
-  "vehicle_id_5": null
-}
-```
-
-Schema:
-
-```json
-{
-  "vehicles": [
-    {
-      "$$repeat$$": [
-        "@vehicle_id_1",
-        "@vehicle_id_2",
-        "@vehicle_id_3",
-        "@vehicle_id_4",
-        "@vehicle_id_5"
-      ]
-    }
-  ]
-}
-```
-
-Output:
-
-```json
-{
-	"vehicles": ["a", "b", "c", "d", null]
-}
-```
-
-
-
-Example2
-
-Data:
-
-```json
-{
-  "vehicle_id_1": "a",
-  "vehicle_id_2": "b",
-  "vehicle_id_3": "c",
-  "vehicle_id_4": "d",
-  "vehicle_id_5": null,
-}
-```
-
-Schema:
-
-```json
-{
-  "vehicles": [
-    {
-      "$$repeat$$": [
-        {
-          "id": "@vehicle_id_1"
-        },
-        {
-          "id": "@vehicle_id_2"
-        },
-        {
-          "id": "@vehicle_id_3"
-        },
-        {
-          "id": "@vehicle_id_4"
-        },
-        {
-          "id": "@vehicle_id_5"
-        }
-      ]
-    }
-  ]
-}
-```
-
-Output:
-
-```json
-{
-  "vehicles": [
-    {
-      "id": "a"
-    },
-    {
-      "id": "b"
-    },
-    {
-      "id": "c"
-    },
-    {
-      "id": "d"
-    },
-    {
-      "id": null
-    }
-  ]
-}
-```
-
-------
-
-### Repeat value Object
-
-Data:
-
-```json
-{
-  "phones": [
-    {
-      "number": "+20137462",
-      "id": "1"
-    },
-    {
-      "number": "+3463662",
-      "id": "2"
-    }
-  ]
-}
-```
-
-Schema:
-
-```json
-{
-  "phones": [
-    {
-      "$$repeat$$": {
-        "arrays": "@phones",
-        "pick": "number"
-      }
-    }
-  ]
-}
-```
-
-Output:
-
-```json
-{
-	"phones": ["+20137462", "+3463662"]
-}
-```
-
-------
 
 ### Value Mapping
 
@@ -1121,4 +1138,128 @@ Output (if flag is set to false):
 ```
 
 ------
+
+### Translate Paths
+
+```js
+const object = {
+  "mainObjId": "77",
+  "cars": [
+    {
+      "id": "1",
+      "model": "Jaguar",
+      "year": 2000,
+      "drivers": [
+        {
+          "id": "d1id1",
+          "name": "Test1"
+        }, {
+          "id": "d1id2",
+          "name": "Test2"
+        }
+      ]
+    }, {
+      "id": "2",
+      "model": "BMW",
+      "year": 2012,
+      "drivers": [
+        {
+          "id": "d2id1",
+          "name": "Test12"
+        }, {
+          "id": "d2id2",
+          "name": "Test22"
+        }
+      ]
+    }
+  ],
+
+  "motorcycles": [
+    {
+      "id": "13",
+      "model": "Harvey",
+      "year": 2003,
+      "drivers": [
+        {
+          "id": "dtest1",
+          "name": "Test1"
+        }, {
+          "id": "dtest2",
+          "name": "Test2"
+        }
+      ]
+    }
+  ]
+};
+
+const paths = ['cars.drivers.name', 'motorcycles.drivers.name'];
+const actualPaths = sharpMapper.translatePaths(object, paths);
+
+/* 
+output
+[
+  "cars[0].drivers[0].name",
+  "cars[0].drivers[1].name",
+  "cars[1].drivers[0].name",
+  "cars[1].drivers[1].name",
+  "motorcycles[0].drivers[0].name",
+  "motorcycles[0].drivers[1].name"
+]
+*/
+```
+
+### Enforce Arrays
+
+```js
+var object = {
+  "data": {
+    "policies": {
+      "vehicles": {
+        "Name": "test",
+        "subValues": "a"
+      },
+
+      "houses": [
+        {
+          "Name": "h1",
+          "subValues": "a"
+        },
+        {
+          "Name": "h2",
+          "subValues": ["a", "b"]
+        }
+      ]
+    }
+  }
+}
+
+var sharpMapper  =  require('sharp-mapper');
+var writterPaths = ['data.policies', 'data.policies.vehicles', 'data.policies.vehicles.subValues', 'data.policies.houses', 'data.policies.houses.subValues', 'data.noarry'];
+var updatedObject =  sharpMapper.enforceArrays(object, writtenPaths);
+
+/*
+result is
+{
+  "data": {
+    "policies": [{
+      "vehicles": [{
+        "Name": "test",
+        "subValues": ["a"]
+      }],
+
+      "houses": [
+        {
+          "Name": "h1",
+          "subValues": ["a"]
+        },
+        {
+          "Name": "h2",
+          "subValues": ["a", "b"]
+        }
+      ]
+    }]
+  }
+}
+*/
+```
 
